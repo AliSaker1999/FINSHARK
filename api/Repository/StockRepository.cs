@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using api.Data;
 using api.Dtos.Stock;
+using api.Helpers;
 using api.Interfaces;
 using api.Models;
 using Microsoft.EntityFrameworkCore;
@@ -37,17 +38,48 @@ namespace api.Repository
             return stockmodel;
         }
 
-        public async Task<List<Stock>> GetAllAsync()
+        public async Task<List<Stock>> GetAllAsync(QueryObject query)
         {
-            return await _context.Stock.ToListAsync();
+            var stocks = _context.Stock.Include(c => c.Comments).AsQueryable();
+            if (!string.IsNullOrWhiteSpace(query.CompanyName))
+            {
+                stocks = stocks.Where(s => s.CompanyName.Contains(query.CompanyName));
+            }
+            if (!string.IsNullOrWhiteSpace(query.Symbol))
+            {
+                stocks = stocks.Where(s => s.Symbol.Contains(query.Symbol));
+            }
+            if (!string.IsNullOrWhiteSpace(query.SortBy))
+            {
+                if (query.SortBy.Equals("Symbol", StringComparison.OrdinalIgnoreCase))
+                {
+                    stocks = query.isDecsending ? stocks.OrderByDescending(s => s.Symbol) : stocks.OrderBy(s => s.Symbol);
+                }
+            }
+            var skipNum = (query.PageNumber - 1) * query.PageSize;
+
+
+            return await stocks.Skip(skipNum).Take(query.PageSize).ToListAsync();
+
         }
 
         public async Task<Stock?> GetByIdAsync(int id)
         {
-            return await _context.Stock.FindAsync(id);
+            return await _context.Stock.Include(c=>c.Comments).ThenInclude(a=>a.AppUser).FirstOrDefaultAsync(i=>i.Id==id);
         }
 
-        public async Task<Stock?> YpdateAsync(int id, UpdateStockRequestDto stockDto)
+        public async Task<Stock?> GetBySymbolAsync(string symbol)
+        {
+            return await _context.Stock.FirstOrDefaultAsync(s => s.Symbol == symbol);
+            
+        }
+
+        public async Task<bool> stockExist(int id)
+        {
+            return await _context.Stock.AnyAsync(s => s.Id == id);
+        }
+
+        public async Task<Stock?> updateAsync(int id, UpdateStockRequestDto stockDto)
         {
             var stockModel =await _context.Stock.FirstOrDefaultAsync(x=>x.Id==id);
             if(stockModel==null)

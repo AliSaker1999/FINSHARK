@@ -15,13 +15,14 @@ namespace api.Mappers
         {
             return new StockDto
             {
-                Id=stockModel.Id,
+                Id = stockModel.Id,
                 Symbol = stockModel.Symbol,
-                CompanyName=stockModel.CompanyName,
-                MyProperty=stockModel.MyProperty,
-                LastDiv=stockModel.LastDiv,
-                Industry=stockModel.Industry,
-                MarketCap=stockModel.MarketCap
+                CompanyName = stockModel.CompanyName,
+                MyProperty = stockModel.MyProperty,
+                LastDiv = stockModel.LastDiv,
+                Industry = stockModel.Industry,
+                MarketCap = stockModel.MarketCap,
+                Comments=stockModel.Comments.Select(c=>c.ToCommentDto()).ToList()
             };
         }
 
